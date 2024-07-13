@@ -1,25 +1,29 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import time
+from flask import Flask, request, jsonify
+import gpiozero
+from time import sleep
 
-hostName = "192.168.68.81"
-serverPort = 8080
+app = Flask(__name__)
 
-class MyServer(BaseHTTPRequestHandler):
-	def do_GET(self):
-		self.send_response(200)
-		self.send_header("Content-type", "text/html")
-		self.end_headers()
-		self.wfile.write(bytes("<html><head><title>Kitts Server</title></head>", "utf-8"))
-		self.wfile.write("<p>Request: %s</p></html>" % self.path, "utf-8")
+@app.route("/")
+def hello():
+    return "Welcome to the Garage Controller API"
+
+@app.route("/door", methods=["POST"])
+def post():
+    print("POST request made")
+    content = request.json
+    doorNum = content["doorNum"]
+    print(doorNum)
+
+    relay = gpiozero.OutputDevice(doorNum + 1, active_high=False)
+    relay.off()
+    sleep(1)
+    relay.on()
+    sleep(1)
+    relay.off()
+    sleep(1)
+
+    return jsonify({"status": f"Opened relay number {doorNum}"})
 
 if __name__ == "__main__":
-	webServer = HTTPServer((hostName, serverPort), MyServer)
-	print("Server started http://%s:%s" % (hostName, serverPort))
-	
-	try:
-		webServer.serve_forever()
-	except KeyboardInterrupt:
-		pass
-	
-	webServer.server_close()
-	print("Server stopped.")
+    app.run()
